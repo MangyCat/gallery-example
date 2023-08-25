@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="hr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Galerija Primjer</title>
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <meta name="description" content="A gallery featuring images of my products.">
+    <meta property="og:title" content="Product gallery">
+    <meta property="og:description" content="A gallery featuring images of my products.">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: url('texture.jpg') repeat;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .gallery {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .gallery-item {
+            flex: 0 0 calc(33.333% - 20px);
+            margin: 10px;
+            text-align: center;
+            background-color: rgba(255, 255, 255, 0.9);
+            padding: 15px;
+            border-radius: 10px;
+        }
+        .gallery-item img {
+            max-width: 100%;
+            height: auto;
+        }
+        .gallery-item h2 {
+            font-size: 16px;
+            margin: 10px 0;
+        }
+        .btn-circle {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            font-size: 20px;
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1;
+        }
+        .modal-content {
+            border-radius: 0;
+        }
+        header {
+            background-color: #007BFF;
+            color: white;
+            padding: 15px 0;
+            text-align: center;
+        }
+        header h1 {
+            margin: 0;
+        }
+        header img {
+            max-width: 100%;
+            height: auto;
+        }
+        footer {
+            background-color: black;
+            color: white;
+            padding: 20px 0;
+            text-align: center;
+        }
+        .footer-logo {
+            max-width: 100px;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>Galerija Primjer</h1>
+        </div>
+    </header>
+    <div class="container mt-4">
+        <div class="row gallery" id="gallery"></div>
+    </div>
+    <button type="button" class="btn btn-primary btn-circle" data-bs-toggle="modal" data-bs-target="#contactModal">
+        <i class="fas fa-envelope"></i>
+    </button>
+    <div class="modal fade" id="contactModal" tabindex="-1" role="dialog" aria-labelledby="contactModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="contactModalLabel">Kontakt</h5>
+                    <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <form id="contactForm">
+                        <div class="form-group">
+                            <label for="email">Kontakt:</label>
+                            <input type="text" id="email" name="email" class="form-control" required />
+                        </div>
+                        <div class="form-group">
+                            <label for="message">Poruka:</label>
+                            <textarea class="form-control" id="message" name="message" rows="4" required></textarea>
+                        </div>
+                        <button id="submitButton" type="submit" class="btn btn-primary">Posalji</button>
+                    </form>
+                    <div id="responseMessage"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <footer>
+        <img src="footer-logo.png" alt="Footer Logo" class="footer-logo" />
+    </footer>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.min.js" defer></script>
+    <script>
+        async function loadGallery() {
+            try {
+                const response = await fetch('gallery.json');
+                const data = await response.json();
+                const galleryContainer = document.getElementById('gallery');
+                data.forEach(item => {
+                    const galleryItem = document.createElement('div');
+                    galleryItem.className = 'gallery-item';
+                    galleryItem.innerHTML = `
+                        <img src="${item.imageURL}" alt="${item.name}" />
+                        <h2>${item.name}</h2>
+                    `;
+                    galleryContainer.appendChild(galleryItem);
+                });
+            } catch (error) {
+                console.error('Error loading gallery:', error);
+            }
+        }
+        window.onload = loadGallery;
+
+        // AJAX form submission with debounce
+        const contactForm = document.getElementById('contactForm');
+        const responseMessage = document.getElementById('responseMessage');
+        const submitButton = document.getElementById('submitButton');
+        let debounceTimeout;
+
+        function clearResponseMessage() {
+            responseMessage.innerHTML = '';
+        }
+
+        contactForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            if (debounceTimeout) {
+                clearTimeout(debounceTimeout);
+            }
+
+            submitButton.disabled = true;
+
+            const formData = new FormData(contactForm);
+
+            try {
+                const response = await fetch('contact.php', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    responseMessage.innerHTML = `<div class="alert alert-success">${data.message}</div>`;
+                    contactForm.reset();
+                    setTimeout(clearResponseMessage, 3000);
+                } else {
+                    responseMessage.innerHTML = `<div class="alert alert-danger">${data.message}</div>`;
+                }
+            } catch (error) {
+                console.error('Error submitting form:', error);
+                responseMessage.innerHTML = '<div class="alert alert-danger">Ups! Nešto je pošlo krivo, pokušajte kasnije.</div>';
+            } finally {
+                debounceTimeout = setTimeout(() => {
+                    submitButton.disabled = false;
+                }, 10000);
+            }
+        });
+    </script>
+</body>
+</html>
